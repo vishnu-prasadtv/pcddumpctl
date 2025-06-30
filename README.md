@@ -6,13 +6,13 @@
 ## Usage
 
 ```bash
-pf9dumpctl3 --help
+pf9dumpctl --help
 ```
 
 Output:
 
 ```
-usage: pf9dumpctl3 [-h] [-n NAMESPACE] [--all-namespaces] [-o {wide}] [--pod-name POD_NAME] [--list-resources] [--list-namespaces] [--version]
+usage: pf9dumpctl [-h] [-n NAMESPACE] [--all-namespaces] [-o {wide}] [--pod-name POD_NAME] [--list-resources] [--list-namespaces] [--version]
                    [{pods,deployments,statefulsets,daemonsets,replicasets,services,events,jobs,cronjobs,nodes,logs}]
 
 Platform9 Cluster Dump Inspector
