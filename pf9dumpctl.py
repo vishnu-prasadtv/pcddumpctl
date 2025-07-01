@@ -512,19 +512,18 @@ def main():
           pf9dumpctl pods -n kube-system -o wide
 
           # View logs for a specific pod
-          pf9dumpctl logs -n in-pa-pune --pod-name percona-db-pxc-db-haproxy-2
+          pf9dumpctl logs -n <namespace> --pod-name pod-abc
 
           # List all available namespaces
-          pf9dumpctl get namespaces
+          pf9dumpctl namespaces
 
-          # List all available resource
-          pf9dumpctl get all 
-          pf9dumpctl get all -n <namespace>
+          # List all available resource types
+          pf9dumpctl get all
 
         Supported Resource Types:
           pods, deployments, statefulsets, daemonsets, replicasets,
           services, events, jobs, cronjobs, nodes, logs
-          """))
+        """))
 
 #    parser.add_argument("resource_type", nargs='?', choices=[
 #       "pods", "deployments", "statefulsets", "daemonsets", "replicasets",
@@ -587,14 +586,27 @@ def main():
         if not args.resource_target or not args.namespace:
             print("Error: For 'get logs', both POD_NAME and --namespace are required", file=sys.stderr)
             print("Usage: pf9dumpctl get logs POD_NAME -n NAMESPACE")
-            sys.exit(1)
+        sys.exit(1)
+
+    # Fetch pod logs (adjust path to your cluster dump layout if needed)
+        pod_name = args.resource_target
+        namespace = args.namespace
+        log_path = os.path.join(base_dump_path, namespace, "pod_logs", f"{pod_name}.log")
+
+        if os.path.exists(log_path):
+            print(f"\n=== Logs for Pod '{pod_name}' in Namespace '{namespace}' ===\n")
+            with open(log_path, 'r') as f:
+                print(f.read())
+        else:
+            print(f"No logs found for pod '{pod_name}' in namespace '{namespace}'", file=sys.stderr)
+        sys.exit(0)
     
     if args.command == "get" and args.resource_type == "all":
         if not args.namespace and not args.all_namespaces:
             args.all_namespaces = True
 
     if args.command == "logs":
-        namespace_path = os.path.join(os.getcwd(), args.namespace)
+        namespace_path = os.path.join(base_dump_path, args.namespace)
         if not os.path.isdir(namespace_path):
             print(f"Error: Namespace '{args.namespace}' not found in the dump.", file=sys.stderr)
             sys.exit(1)
@@ -640,7 +652,42 @@ def main():
         if not matched:
             print(f"{args.resource_type} '{args.name}' not found in namespace '{args.namespace}'", file=sys.stderr)
             sys.exit(1)
-            
+        """   
+        if args.output == "yaml":
+            if args.resource_target:
+                matched = [
+                    res for res in all_collected_resources
+                    if res.get("metadata", {}).get("name") == args.resource_target
+                ]
+                if matched:
+                    print(yaml.dump(matched[0], sort_keys=False))
+                else:
+                    print(f"{args.resource_type} '{args.resource_target}' not found in namespace '{args.namespace}'", file=sys.stderr)
+            else:
+                print(yaml.dump(all_collected_resources, sort_keys=False))
+            sys.exit(0)
+        print(f"\n=== Description of {args.resource_type} '{args.name}' in namespace '{args.namespace}' ===")
+        print(yaml.dump(matched[0], sort_keys=False))
+        sys.exit(0)
+        """
+        """
+        if args.resource_target:
+            matched = [
+                res for res in all_collected_resources
+                if res.get("metadata", {}).get("name") == args.name
+                ]
+            if matched:
+                print(yaml.dump(matched[0], sort_keys=False))
+            else:
+                print(f"Resource '{args.resource_target}' not found in the specified namespace(s).")
+        else:
+            # No specific pod name; dump all resources in YAML
+                if all_collected_resources:
+                    print(yaml.dump(all_collected_resources, sort_keys=False))
+                else:
+                    print(f"No {resource_display_name} found in the specified namespace(s).")
+        sys.exit(0)
+        """
         if args.output == "yaml":
             print(yaml.dump(matched[0], sort_keys=False))
             sys.exit(0)
@@ -822,6 +869,27 @@ def main():
                     res['metadata']['namespace'] = namespace
 
         all_collected_resources.extend(current_namespace_resources)
+    """
+    if args.output == "yaml" and args.resource_type == "pods":
+        if args.resource_target:
+            matched = [
+                res for res in all_collected_resources
+                if res.get("metadata", {}).get("name") == args.resource_target
+            ]
+            if matched:
+                print(yaml.dump(matched[0], sort_keys=False))
+            else:
+                print(f"Pod '{args.resource_target}' not found in specified namespace(s).", file=sys.stderr)
+        else:
+            if all_collected_resources:
+                print(yaml.dump(all_collected_resources, sort_keys=False))
+            else:
+                if args.all_namespaces:
+                    print("No pods found across all namespaces.", file=sys.stderr)
+                else:
+                    print(f"No pods found in namespace '{args.namespace}'.", file=sys.stderr)
+        sys.exit(0)
+    """
 
     if args.output == "yaml" and args.resource_target:
         matched = [
