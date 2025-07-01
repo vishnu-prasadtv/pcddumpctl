@@ -128,6 +128,9 @@ pf9dumpctl get pods -n kube-system
 # Get deployments with wide output
 pf9dumpctl get deployments -o wide
 
+# Get outputs with -o yaml
+pf9dumpctl get pods my-pod-name -n my-namespace -o yaml
+
 # Describe a specific deployment
 pf9dumpctl describe deployment my-deploy -n my-namespace
 
