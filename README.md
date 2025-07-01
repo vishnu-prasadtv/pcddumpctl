@@ -10,7 +10,6 @@
 - Filter by namespace or across all namespaces
 - Supports multiple output formats (`wide`, `yaml`)
 - View pod logs
-- Describe individual resources
 - Familiar `kubectl`-style CLI experience
 
 ---
@@ -90,12 +89,11 @@ pf9dumpctl [command] [options]
 | Command     | Description                          |
 |-------------|--------------------------------------|
 | `get`       | List Kubernetes resources            |
-| `describe`  | Show detailed info about a resource  |
 | `logs`      | View pod logs                        |
 
 ### 🔍 Supported Resource Types
 
-For `get` and `describe` commands:
+For `get` commands:
 - `pods`
 - `deployments`
 - `statefulsets`
@@ -130,9 +128,6 @@ pf9dumpctl get deployments -o wide
 
 # Get outputs with -o yaml
 pf9dumpctl get pods my-pod-name -n my-namespace -o yaml
-
-# Describe a specific deployment
-pf9dumpctl describe deployment my-deploy -n my-namespace
 
 # View logs for a pod
 pf9dumpctl logs -n kube-system my-pod-name
