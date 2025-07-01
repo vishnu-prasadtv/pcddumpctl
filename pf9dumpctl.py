@@ -525,7 +525,7 @@ def main():
           pods, deployments, statefulsets, daemonsets, replicasets,
           services, events, jobs, cronjobs, nodes, logs
           
-        """))
+        /n"""))
 
 #    parser.add_argument("resource_type", nargs='?', choices=[
 #       "pods", "deployments", "statefulsets", "daemonsets", "replicasets",
