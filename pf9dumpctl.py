@@ -4,6 +4,7 @@ import os
 import datetime
 import argparse
 import sys
+import json
 from textwrap import dedent
 from tabulate import tabulate
 
@@ -443,21 +444,36 @@ def print_nodes(node_list, wide_output=False):
         print("  ".join(row_data))
 
 def parse_resource_file(file_path):
-    """Parses a YAML file and returns a list of resource items."""
+    """Parses a YAML, JSON, or JSON Lines file and returns a list of resource items."""
     if not os.path.exists(file_path):
         return []
 
-    with open(file_path, 'r') as file:
-        try:
-            parsed_output = yaml.safe_load(file)
-        except yaml.YAMLError as e:
-            print(f"Error parsing YAML file {file_path}: {e}", file=sys.stderr)
-            return []
+    items = []
+
+    try:
+        with open(file_path, 'r') as file:
+            if file_path.endswith('.json') or file_path.endswith('.txt'):
+                # Handle JSON Lines
+                for line in file:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        obj = json.loads(line)
+                        items.append(obj)
+                    except json.JSONDecodeError as e:
+                        print(f"Skipping malformed JSON line: {e}", file=sys.stderr)
+                return items
+            else:
+                # Handle regular YAML
+                parsed_output = yaml.safe_load(file)
+    except Exception as e:
+        print(f"Error reading file {file_path}: {e}", file=sys.stderr)
+        return []
 
     if parsed_output is None:
         return []
 
-    items = []
     if 'items' in parsed_output:
         items = parsed_output['items']
     elif isinstance(parsed_output, dict) and 'apiVersion' in parsed_output and 'kind' in parsed_output:
@@ -466,6 +482,52 @@ def parse_resource_file(file_path):
         items = parsed_output
 
     return items
+
+def parse_json_lines_file(file_path):
+    """Parses a file with newline-delimited JSON objects."""
+    if not os.path.exists(file_path):
+        return []
+
+    items = []
+    with open(file_path, 'r') as file:
+        for line in file:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+                items.append(obj)
+            except json.JSONDecodeError as e:
+                print(f"Skipping malformed JSON line: {e}", file=sys.stderr)
+    return items
+
+def print_hosts(host_list, wide_output=False):
+    """Prints host details from the resmgr_json.txt file."""
+    from tabulate import tabulate
+
+    headers = ["HOSTNAME", "HOST_ID", "STATUS", "IP"]
+    rows = []
+
+    for item in host_list:
+        host = item 
+
+        # Correctly access the nested hostname
+        hostname = host.get("info", {}).get("hostname", "<none>")
+
+        # Use the correct key for host_id
+        host_id = host.get("host_id", "<none>")
+
+        # Status is correctly at the top level
+        status = host.get("status", "<none>")
+
+        # Correctly access the nested IP address list
+        ip_list = host.get("extensions", {}).get("ip_address", {}).get("data", [])
+        ip = ip_list[0] if ip_list else "<none>"
+
+        rows.append([hostname, host_id, status, ip])
+
+    print("\n=== Hosts ===")
+    print(tabulate(rows, headers=headers, tablefmt="plain"))
 
 def get_pod_logs(namespace_path, pod_name):
     """Fetches and prints logs for a specific pod with corrected path."""
@@ -547,7 +609,7 @@ def main():
     get_parser = subparsers.add_parser("get", help="Get kubernetes resources")
     valid_resource_types = [
     "pods", "deployments", "statefulsets", "daemonsets", "replicasets",
-    "services", "events", "jobs", "cronjobs", "nodes", "namespaces", "all"
+    "services", "events", "jobs", "cronjobs", "nodes", "namespaces", "all", "hosts"
     ]
     get_parser.add_argument("resource_type", nargs='?', choices=valid_resource_types, help="The type of Kubernetes resource to query")
     get_parser.add_argument("resource_target", nargs="?", help="For 'logs', specify pod name")
@@ -581,13 +643,25 @@ def main():
 #    if not args.resource_type and not (args.list_resources or args.list_namespaces):
 #        parser.print_help()
 #        sys.exit(1)
+    non_namespaced_resources = {"nodes", "namespaces", "hosts"}
+    """
+    if args.command == "get":
+        is_namespaced = args.resource_type not in non_namespaced_resources
 
+    if is_namespaced and not (args.namespace or args.all_namespaces):
+        print("Error: Please specify a namespace with -n/--namespace or use --all-namespaces.", file=sys.stderr)
+        sys.exit(1)
+
+    if not is_namespaced:
+        args.namespace = None
+        args.all_namespaces = False
+    """
     if args.command == "get" and args.resource_type == "logs":
         if not args.resource_target or not args.namespace:
             print("Error: For 'get logs', both POD_NAME and --namespace are required", file=sys.stderr)
             print("Usage: pf9dumpctl get logs POD_NAME -n NAMESPACE")
         sys.exit(1)
-
+        
     # Fetch pod logs (adjust path to your cluster dump layout if needed)
         pod_name = args.resource_target
         namespace = args.namespace
@@ -711,6 +785,26 @@ def main():
         "nodes": {"file": "nodes.yaml", "display": "Nodes", "printer": print_nodes},
         "namespaces": {"file": None, "display": "Namespaces", "printer": lambda ns_list, **kwargs: print_namespaces(ns_list)}
     }
+
+    if args.command == "get" and args.resource_type == "hosts":
+        hosts_file_path = os.path.join(base_dump_path, "resmgr_json.txt")
+        if not os.path.exists(hosts_file_path):
+            print(f"Error: hosts file not found at {hosts_file_path}", file=sys.stderr)
+            sys.exit(1)
+
+        host_data = parse_json_lines_file(hosts_file_path)
+        if len(host_data) == 1 and isinstance(host_data[0], list):
+            host_data = host_data[0]
+
+        if not host_data:
+            print("No hosts data found.")
+            sys.exit(1)
+
+        if args.output == "yaml":
+            print(yaml.dump(host_data, sort_keys=False))
+        else:
+            print_hosts(host_data, wide_output=(args.output == "wide"))
+        sys.exit(0)
 
     if args.list_resources:
         print("\n=== Available Resource Types ===")
