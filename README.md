@@ -1,40 +1,101 @@
-```markdown
-# pf9dumpctl - Platform9 Cluster Dump Inspector
+# 🚀 pf9dumpctl - Platform9 Cluster Dump Inspector
 
-A Python utility for inspecting Platform9 Kubernetes cluster dump files.
+`pf9dumpctl` is a lightweight Python CLI tool that simulates `kubectl`-like interactions with offline Platform9 Kubernetes cluster dump files.
 
-## Features
+---
 
-- View Kubernetes resources from cluster dump files
-- Filter by namespace or resource type
-- Output in wide format or YAML
+## ✨ Features
+
+- Inspect Kubernetes resources from offline cluster dumps
+- Filter by namespace or across all namespaces
+- Supports multiple output formats (`wide`, `yaml`)
 - View pod logs
-- Describe specific resources
+- Describe individual resources
+- Familiar `kubectl`-style CLI experience
 
-## Installation
+---
 
-pip install pyyaml
+## 📦 Installation
+
+### 1. Clone the GitHub Repository
+
+```bash
+git clone https://github.com/vishnu-prasadtv/pf9dumpctl.git
+cd pf9dumpctl
+```
+
+### 2. Set Up Python Virtual Environment (Recommended)
+
+```bash
+# Create virtual environment
+python3 -m venv pf9env
+
+# Activate the virtual environment
+source pf9env/bin/activate
+```
+
+### 3. Install Required Python Modules
+
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+*Contents of `requirements.txt`:*
+```
+pyyaml>=5.3.1
+tabulate>=0.8.9
+```
+
+### 4. Make the Script Executable
+
+```bash
 chmod +x pf9dumpctl.py
+```
+
+### 5. Copy the Script to a System-Wide Path
+
+```bash
 sudo cp pf9dumpctl.py /usr/local/bin/pf9dumpctl
 ```
 
-## Usage
+### 6. (Optional) Add an Alias for Easier Access
 
+Add the following to your shell config (`~/.bashrc`, `~/.zshrc`, etc.):
+
+
+```bash
+echo "alias pf9dumpctl='python3 /usr/local/bin/pf9dumpctl'" >> ~/.bashrc
+source ~/.bashrc
 ```
+
+### 7. Set the Cluster Dump Path
+
+```bash
+export CLUSTER_DUMP_PATH=/path/to/your/cluster-dump
+```
+
+---
+
+## 🛠️ Usage
+
+```bash
 pf9dumpctl [command] [options]
 ```
 
-### Commands
+---
 
-| Command    | Description                          |
-|------------|--------------------------------------|
-| `get`      | List Kubernetes resources            |
-| `describe` | Show detailed info about a resource |
-| `logs`     | View pod logs                        |
+### ✅ Commands
 
-### Resource Types
+| Command     | Description                          |
+|-------------|--------------------------------------|
+| `get`       | List Kubernetes resources            |
+| `describe`  | Show detailed info about a resource  |
+| `logs`      | View pod logs                        |
 
-Supported resource types for `get` and `describe` commands:
+### 🔍 Supported Resource Types
+
+For `get` and `describe` commands:
 - `pods`
 - `deployments`
 - `statefulsets`
@@ -45,48 +106,49 @@ Supported resource types for `get` and `describe` commands:
 - `jobs`
 - `cronjobs`
 - `nodes`
+- `namespaces`
 
-### Options
+### ⚙️ Options
 
-| Option              | Description                          |
-|---------------------|--------------------------------------|
-| `-n, --namespace`   | Filter by namespace                  |
-| `-A, --all-namespaces` | Show resources from all namespaces |
-| `-o, --output`      | Output format (wide, yaml)           |
-| `--list-resources`  | List available resource types        |
-| `--list-namespaces` | List available namespaces            |
-| `--version`         | Show version                         |
+| Option                  | Description                                |
+|-------------------------|--------------------------------------------|
+| `-n`, `--namespace`     | Specify the namespace                      |
+| `-A`, `--all-namespaces`| Show resources across all namespaces       |
+| `-o`, `--output`        | Output format (`wide`, `yaml`)             |
+| `--version`             | Show tool version                          |
 
-## Examples
+---
 
-```
-# List all pods in kube-system namespace
+## 🔧 Examples
+
+```bash
+# List all pods in kube-system
 pf9dumpctl get pods -n kube-system
 
-# List deployments with wide output
+# Get deployments with wide output
 pf9dumpctl get deployments -o wide
 
-# View logs for a specific pod
-pf9dumpctl logs -n my-namespace my-pod
+# Describe a specific deployment
+pf9dumpctl describe deployment my-deploy -n my-namespace
 
-# Describe a deployment
-pf9dumpctl describe deployment my-deployment -n my-namespace
+# View logs for a pod
+pf9dumpctl logs -n kube-system my-pod-name
 
-# List all events across all namespaces
+# Get all events across namespaces
 pf9dumpctl get events -A
 ```
 
-## Requirements
+---
+
+## 📋 Requirements
 
 - Python 3.6+
-- PyYAML
+- `pyyaml`
+- `tabulate`
 
-## Known Issues
+---
 
-- Logs functionality requires logs.txt files in pod directories
-- Some edge cases in timestamp parsing may occur
-- Wide output formatting may not align perfectly in all terminals
+## 👥 Maintainers
 
-## Contributing
-
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+- **Abhijith Ajayan**
+- **Vishnu Prasad**
