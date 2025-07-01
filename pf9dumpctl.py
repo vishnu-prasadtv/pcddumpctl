@@ -515,10 +515,11 @@ def main():
           pf9dumpctl logs -n in-pa-pune --pod-name percona-db-pxc-db-haproxy-2
 
           # List all available namespaces
-          pf9dumpctl --list-namespaces
+          pf9dumpctl get namespaces
 
-          # List all available resource types
-          pf9dumpctl --list-resources
+          # List all available resource
+          pf9dumpctl get all 
+          pf9dumpctl get all -n <namespace>
 
         Supported Resource Types:
           pods, deployments, statefulsets, daemonsets, replicasets,
