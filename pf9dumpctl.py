@@ -5,6 +5,7 @@ import datetime
 import argparse
 import sys
 from textwrap import dedent
+from tabulate import tabulate
 
 VERSION = "1.0.0"
 
@@ -43,6 +44,8 @@ def calculate_age(creation_timestamp, duration_seconds=None):
         return f"{int(age_seconds / 2592000)}mo"
     else:
         return f"{int(age_seconds / 31536000)}y"
+    pass
+
 
 def print_header(title, columns, include_namespace=False):
     """Prints the header for the table."""
@@ -52,105 +55,107 @@ def print_header(title, columns, include_namespace=False):
     header_cols = []
     if include_namespace:
         header_cols.append("NAMESPACE".ljust(20))
-    header_cols.append("NAME".ljust(58))
+    header_cols.append("NAME".ljust(40))
     header_cols.extend([col.ljust(15) for col in columns])
 
     print(f"\n=== {title} ===")
     print("  ".join(header_cols))
 
     # Print separator line
-    separator = "-" * 20 if include_namespace else ""
-    separator += "  " + "-" * 58
-    separator += "  " + "  ".join(["-" * 15 for _ in columns])
-    print(separator)
+#    separator = "-" * 20 if include_namespace else ""
+#    separator += "  " + "-" * 58
+#    separator += "  " + "  ".join(["-" * 15 for _ in columns])
+#    print(separator)
 
-def print_pods(pod_list, wide_output=False, all_namespaces=False):
-    """Prints the pod details."""
-    columns = ["READY", "STATUS", "RESTARTS", "AGE"]
+def print_pods(pod_list, wide_output=False, yaml_output=False, all_namespaces=False):
+    if yaml_output:
+        print(yaml.dump(pod_list, sort_keys=False))
+        return
+
+    headers = []
+    if all_namespaces:
+        headers.append("NAMESPACE")
+    headers.extend(["NAME", "READY", "STATUS", "RESTARTS", "AGE"])
     if wide_output:
-        columns.extend(["IP", "NODE", "NOMINATED NODE", "READINESS GATES"])
+        headers.extend(["IP", "NODE", "NOMINATED NODE", "READINESS GATES"])
 
-    print_header("Pods", columns, include_namespace=all_namespaces)
+    table = []
 
     for pod in pod_list:
-        name = pod.get('metadata', {}).get('name', '')
+        row = []
         namespace = pod.get('metadata', {}).get('namespace', '')
-
+        name = pod.get('metadata', {}).get('name', '')
         status = pod.get('status', {}).get('phase', '')
-        # Handle completed pods
         if status.lower() == 'succeeded':
             status = 'Completed'
 
         container_statuses = pod.get('status', {}).get('containerStatuses', [])
+        ready_count = sum(1 for c in container_statuses if c.get('ready'))
+        total_containers = len(container_statuses)
+        restarts = sum(c.get('restartCount', 0) for c in container_statuses)
 
-        ready_count = 0
-        total_containers = 0
-        restarts = 0
-
-        if container_statuses:
-            total_containers = len(container_statuses)
-            for container in container_statuses:
-                if container.get('ready', False):
-                    ready_count += 1
-                restarts += container.get('restartCount', 0)
-
-        ready_str = f"{ready_count}/{total_containers}"
         age = calculate_age(pod.get('metadata', {}).get('creationTimestamp', ''))
 
-        row_data = []
         if all_namespaces:
-            row_data.append(namespace.ljust(20))
-        row_data.extend([
-            name.ljust(58),
-            ready_str.ljust(15),
-            status.ljust(15),
-            str(restarts).ljust(15),
-            age.ljust(15)
+            row.append(namespace)
+        row.extend([
+            name,
+            f"{ready_count}/{total_containers}",
+            status,
+            str(restarts),
+            age
         ])
 
         if wide_output:
-            ip = pod.get('status', {}).get('podIP', '<none>').ljust(15)
-            node = pod.get('spec', {}).get('nodeName', '<none>').ljust(15)
-            nominated_node = pod.get('status', {}).get('nominatedNodeName', '<none>').ljust(15)
+            ip = pod.get('status', {}).get('podIP', '<none>')
+            node = pod.get('spec', {}).get('nodeName', '<none>')
+            nominated_node = pod.get('status', {}).get('nominatedNodeName', '<none>')
             readiness_gates = pod.get('spec', {}).get('readinessGates', [])
-            readiness_gates_str = ", ".join(
-                [gate.get('conditionType', '') for gate in readiness_gates]
-            ) if readiness_gates else '<none>'
-            row_data.extend([ip, node, nominated_node, readiness_gates_str.ljust(15)])
+            readiness_str = ", ".join(g.get('conditionType', '') for g in readiness_gates) if readiness_gates else '<none>'
+            row.extend([ip, node, nominated_node, readiness_str])
 
-        print("  ".join(row_data))
+        table.append(row)
+
+    print(tabulate(table, headers=headers, tablefmt="plain"))
 
 def print_deployments(deployment_list, wide_output=False, all_namespaces=False):
-    """Prints the deployment details."""
-    columns = ["READY", "UP-TO-DATE", "AVAILABLE", "AGE"]
-    print_header("Deployments", columns, include_namespace=all_namespaces)
+    headers = []
+    if all_namespaces:
+        headers.append("NAMESPACE")
+    headers.extend(["NAME", "READY", "UP-TO-DATE", "AVAILABLE", "AGE"])
+
+    table = []
 
     for deployment in deployment_list:
         name = deployment.get('metadata', {}).get('name', '')
         namespace = deployment.get('metadata', {}).get('namespace', '')
-
         replicas = deployment.get('spec', {}).get('replicas', 0)
         updated_replicas = deployment.get('status', {}).get('updatedReplicas', 0)
         available_replicas = deployment.get('status', {}).get('availableReplicas', 0)
         age = calculate_age(deployment.get('metadata', {}).get('creationTimestamp', ''))
 
-        row_data = []
+        row = []
         if all_namespaces:
-            row_data.append(namespace.ljust(20))
-        row_data.extend([
-            name.ljust(58),
-            f"{available_replicas}/{replicas}".ljust(15),
-            str(updated_replicas).ljust(15),
-            str(available_replicas).ljust(15),
-            age.ljust(15)
+            row.append(namespace)
+        row.extend([
+            name,
+            f"{available_replicas}/{replicas}",
+            str(updated_replicas),
+            str(available_replicas),
+            age
         ])
+        table.append(row)
 
-        print("  ".join(row_data))
+    print(tabulate(table, headers=headers, tablefmt="plain"))
 
 def print_statefulsets(statefulset_list, wide_output=False, all_namespaces=False):
-    """Prints the statefulset details."""
-    columns = ["READY", "AGE"]
-    print_header("StatefulSets", columns, include_namespace=all_namespaces)
+    """Prints the statefulset details using tabulate."""
+    headers = []
+    if all_namespaces:
+        headers.append("NAMESPACE")
+    headers.extend(["NAME", "READY", "AGE"])
+
+    table = []
 
     for sts in statefulset_list:
         name = sts.get('metadata', {}).get('name', '')
@@ -160,21 +165,30 @@ def print_statefulsets(statefulset_list, wide_output=False, all_namespaces=False
         ready_replicas = sts.get('status', {}).get('readyReplicas', 0)
         age = calculate_age(sts.get('metadata', {}).get('creationTimestamp', ''))
 
-        row_data = []
+        row = []
         if all_namespaces:
-            row_data.append(namespace.ljust(20))
-        row_data.extend([
-            name.ljust(58),
-            f"{ready_replicas}/{replicas}".ljust(15),
-            age.ljust(15)
+            row.append(namespace)
+        row.extend([
+            name,
+            f"{ready_replicas}/{replicas}",
+            age
         ])
 
-        print("  ".join(row_data))
+        table.append(row)
+
+    print(tabulate(table, headers=headers, tablefmt="plain"))
 
 def print_daemonsets(daemonset_list, wide_output=False, all_namespaces=False):
-    """Prints the daemonset details."""
-    columns = ["DESIRED", "CURRENT", "READY", "UP-TO-DATE", "AVAILABLE", "NODE SELECTOR", "AGE"]
-    print_header("DaemonSets", columns, include_namespace=all_namespaces)
+    """Prints the daemonset details using tabulate."""
+    headers = []
+    if all_namespaces:
+        headers.append("NAMESPACE")
+    headers.extend([
+        "NAME", "DESIRED", "CURRENT", "READY", "UP-TO-DATE",
+        "AVAILABLE", "NODE SELECTOR", "AGE"
+    ])
+
+    table = []
 
     for ds in daemonset_list:
         name = ds.get('metadata', {}).get('name', '')
@@ -185,30 +199,37 @@ def print_daemonsets(daemonset_list, wide_output=False, all_namespaces=False):
         ready = ds.get('status', {}).get('numberReady', 0)
         up_to_date = ds.get('status', {}).get('updatedNumberScheduled', 0)
         available = ds.get('status', {}).get('numberAvailable', 0)
+
         node_selector = ds.get('spec', {}).get('template', {}).get('spec', {}).get('nodeSelector', {})
-        node_selector_str = ", ".join([f"{k}={v}" for k,v in node_selector.items()]) if node_selector else '<none>'
+        node_selector_str = ", ".join([f"{k}={v}" for k, v in node_selector.items()]) if node_selector else '<none>'
+
         age = calculate_age(ds.get('metadata', {}).get('creationTimestamp', ''))
 
-        row_data = []
+        row = []
         if all_namespaces:
-            row_data.append(namespace.ljust(20))
-        row_data.extend([
-            name.ljust(58),
-            str(desired).ljust(15),
-            str(current).ljust(15),
-            str(ready).ljust(15),
-            str(up_to_date).ljust(15),
-            str(available).ljust(15),
-            node_selector_str.ljust(15),
-            age.ljust(15)
+            row.append(namespace)
+        row.extend([
+            name,
+            str(desired),
+            str(current),
+            str(ready),
+            str(up_to_date),
+            str(available),
+            node_selector_str,
+            age
         ])
+        table.append(row)
 
-        print("  ".join(row_data))
+    print(tabulate(table, headers=headers, tablefmt="plain"))
 
 def print_services(service_list, wide_output=False, all_namespaces=False):
-    """Prints the service details."""
-    columns = ["TYPE", "CLUSTER-IP", "EXTERNAL-IP", "PORT(S)", "AGE"]
-    print_header("Services", columns, include_namespace=all_namespaces)
+    """Prints the service details using tabulate."""
+    headers = []
+    if all_namespaces:
+        headers.append("NAMESPACE")
+    headers.extend(["NAME", "TYPE", "CLUSTER-IP", "EXTERNAL-IP", "PORT(S)", "AGE"])
+
+    table = []
 
     for service in service_list:
         name = service.get('metadata', {}).get('name', '')
@@ -217,10 +238,10 @@ def print_services(service_list, wide_output=False, all_namespaces=False):
         service_type = service.get('spec', {}).get('type', '')
         cluster_ip = service.get('spec', {}).get('clusterIP', '')
         external_ip = '<none>'
+
         if service_type == 'LoadBalancer':
             ingress = service.get('status', {}).get('loadBalancer', {}).get('ingress', [])
             if ingress:
-                # Prioritize IP over hostname
                 external_ip = ingress[0].get('ip', ingress[0].get('hostname', '<pending>'))
         elif service_type == 'ExternalName':
             external_ip = service.get('spec', {}).get('externalName', '<none>')
@@ -230,31 +251,30 @@ def print_services(service_list, wide_output=False, all_namespaces=False):
             if 'nodePort' in port else f"{port['port']}/{port['protocol']}"
             for port in service.get('spec', {}).get('ports', [])
         )
+
         age = calculate_age(service.get('metadata', {}).get('creationTimestamp', ''))
 
-        row_data = []
+        row = []
         if all_namespaces:
-            row_data.append(namespace.ljust(20))
-        row_data.extend([
-            name.ljust(40),
-            service_type.ljust(15),
-            cluster_ip.ljust(15),
-            external_ip.ljust(15),
-            ports.ljust(15),
-            age.ljust(15)
-        ])
+            row.append(namespace)
+        row.extend([name, service_type, cluster_ip, external_ip, ports, age])
+        table.append(row)
 
-        print("  ".join(row_data))
+    print(tabulate(table, headers=headers, tablefmt="plain"))
 
 def print_events(event_list, wide_output=False, all_namespaces=False):
     """Prints the event details."""
-    columns = ["LAST SEEN", "TYPE", "REASON", "OBJECT", "MESSAGE"]
-    print_header("Events", columns, include_namespace=all_namespaces)
+    headers = []
+    if all_namespaces:
+        headers.append("NAMESPACE")
+    headers.extend(["NAME", "LAST SEEN", "TYPE", "REASON", "OBJECT", "MESSAGE"])
 
+    event_list = sorted(event_list, key=lambda e: e.get('lastTimestamp') or e.get('eventTime') or '', reverse=False)
+
+    table_data = []
     for event in event_list:
         namespace = event.get('metadata', {}).get('namespace', '')
         last_timestamp = event.get('lastTimestamp', event.get('eventTime', ''))
-        last_seen = calculate_age(last_timestamp) if last_timestamp else "N/A"
         event_type = event.get('type', '')
         reason = event.get('reason', '')
         involved_object = event.get('involvedObject', {})
@@ -264,27 +284,23 @@ def print_events(event_list, wide_output=False, all_namespaces=False):
         obj_str = f"{obj_kind}/{obj_name}"
         if obj_field_path:
             obj_str += f" ({obj_field_path})"
-
         message = event.get('message', '')
 
         row_data = []
         if all_namespaces:
-            row_data.append(namespace.ljust(20))
-        row_data.extend([
-            obj_name.ljust(40),
-            last_seen.ljust(15),
-            event_type.ljust(15),
-            reason.ljust(15),
-            obj_str.ljust(15),
-            message
-        ])
+            row_data.append(namespace)
+        row_data.extend([obj_name, last_timestamp, event_type, reason, obj_str, message])
+        table_data.append(row_data)
 
-        print("  ".join(row_data))
-
+    print(tabulate(table_data, headers=headers, tablefmt="plain"))
 def print_replicasets(replicaset_list, wide_output=False, all_namespaces=False):
-    """Prints the replicaset details."""
-    columns = ["DESIRED", "CURRENT", "READY", "AGE"]
-    print_header("ReplicaSets", columns, include_namespace=all_namespaces)
+    """Prints the replicaset details using tabulate."""
+    headers = []
+    if all_namespaces:
+        headers.append("NAMESPACE")
+    headers.extend(["NAME", "DESIRED", "CURRENT", "READY", "AGE"])
+
+    table = []
 
     for rs in replicaset_list:
         name = rs.get('metadata', {}).get('name', '')
@@ -295,23 +311,22 @@ def print_replicasets(replicaset_list, wide_output=False, all_namespaces=False):
         ready = rs.get('status', {}).get('readyReplicas', 0)
         age = calculate_age(rs.get('metadata', {}).get('creationTimestamp', ''))
 
-        row_data = []
+        row = []
         if all_namespaces:
-            row_data.append(namespace.ljust(20))
-        row_data.extend([
-            name.ljust(40),
-            str(desired).ljust(15),
-            str(current).ljust(15),
-            str(ready).ljust(15),
-            age.ljust(15)
-        ])
+            row.append(namespace)
+        row.extend([name, desired, current, ready, age])
+        table.append(row)
 
-        print("  ".join(row_data))
+    print(tabulate(table, headers=headers, tablefmt="plain"))
 
 def print_jobs(job_list, wide_output=False, all_namespaces=False):
-    """Prints the job details."""
-    columns = ["COMPLETIONS", "DURATION", "AGE"]
-    print_header("Jobs", columns, include_namespace=all_namespaces)
+    """Prints the job details using tabulate."""
+    headers = []
+    if all_namespaces:
+        headers.append("NAMESPACE")
+    headers.extend(["NAME", "COMPLETIONS", "DURATION", "AGE"])
+
+    table = []
 
     for job in job_list:
         name = job.get('metadata', {}).get('name', '')
@@ -329,26 +344,26 @@ def print_jobs(job_list, wide_output=False, all_namespaces=False):
                 duration_seconds = (end - start).total_seconds()
                 duration = calculate_age(None, duration_seconds)
             except ValueError:
-                pass # duration remains N/A
+                pass
 
         age = calculate_age(job.get('metadata', {}).get('creationTimestamp', ''))
 
-        row_data = []
+        row = []
         if all_namespaces:
-            row_data.append(namespace.ljust(20))
-        row_data.extend([
-            name.ljust(40),
-            str(completions).ljust(15),
-            duration.ljust(15),
-            age.ljust(15)
-        ])
+            row.append(namespace)
+        row.extend([name, completions, duration, age])
+        table.append(row)
 
-        print("  ".join(row_data))
+    print(tabulate(table, headers=headers, tablefmt="plain"))
 
 def print_cronjobs(cronjob_list, wide_output=False, all_namespaces=False):
-    """Prints the cronjob details."""
-    columns = ["SCHEDULE", "SUSPEND", "LAST SCHEDULE", "AGE"]
-    print_header("CronJobs", columns, include_namespace=all_namespaces)
+    """Prints the cronjob details using tabulate."""
+    headers = []
+    if all_namespaces:
+        headers.append("NAMESPACE")
+    headers.extend(["NAME", "SCHEDULE", "SUSPEND", "LAST SCHEDULE", "AGE"])
+
+    table = []
 
     for cj in cronjob_list:
         name = cj.get('metadata', {}).get('name', '')
@@ -360,18 +375,13 @@ def print_cronjobs(cronjob_list, wide_output=False, all_namespaces=False):
         last_schedule = calculate_age(last_schedule_time) if last_schedule_time else '<none>'
         age = calculate_age(cj.get('metadata', {}).get('creationTimestamp', ''))
 
-        row_data = []
+        row = []
         if all_namespaces:
-            row_data.append(namespace.ljust(20))
-        row_data.extend([
-            name.ljust(40),
-            schedule.ljust(15),
-            str(suspend).ljust(15),
-            last_schedule.ljust(15),
-            age.ljust(15)
-        ])
+            row.append(namespace)
+        row.extend([name, schedule, str(suspend), last_schedule, age])
+        table.append(row)
 
-        print("  ".join(row_data))
+    print(tabulate(table, headers=headers, tablefmt="plain"))
 
 def print_nodes(node_list, wide_output=False):
     """Prints the node details."""
@@ -471,14 +481,23 @@ def get_pod_logs(namespace_path, pod_name):
             print(f"Error reading logs: {e}", file=sys.stderr)
     else:
         print(f"No logs found for pod: {pod_name} at {logs_path}", file=sys.stderr)
-
+def print_namespaces(namespace_dirs):
+    print("\n=== Namespaces ===")
+    print("NAME".ljust(40))
+    print("-" * 40)
+    for ns in sorted(namespace_dirs):
+        print(ns.ljust(40))
 def main():
     # Check if running from cluster-dump directory
-    cwd = os.getcwd()
-    if not cwd.endswith('cluster-dump'):
-        print("Error: This command must be run from within a 'cluster-dump' directory")
-        print(f"Current directory: {cwd}")
-        print("Please navigate to the cluster-dump directory and try again")
+    #    cwd = os.getcwd()
+    base_dump_path = os.environ.get("CLUSTER_DUMP_PATH")
+    if not base_dump_path:
+        print("Error: Please set the CLUSTER_DUMP_PATH environment variable.", file=sys.stderr)
+        print("Example: export CLUSTER_DUMP_PATH=/path/to/your/cluster-dump", file=sys.stderr)
+        sys.exit(1)
+
+    if not os.path.isdir(base_dump_path):
+        print(f"Error: CLUSTER_DUMP_PATH '{base_dump_path}' is not a valid directory.", file=sys.stderr)
         sys.exit(1)
 
     parser = argparse.ArgumentParser(
@@ -506,16 +525,16 @@ def main():
           services, events, jobs, cronjobs, nodes, logs
         """))
 
-    parser.add_argument("resource_type", nargs='?', choices=[
-        "pods", "deployments", "statefulsets", "daemonsets", "replicasets",
-        "services", "events", "jobs", "cronjobs", "nodes", "logs"
-    ], help="The type of Kubernetes resource to query")
-    parser.add_argument("-n", "--namespace", help="Filter by namespace")
+#    parser.add_argument("resource_type", nargs='?', choices=[
+#       "pods", "deployments", "statefulsets", "daemonsets", "replicasets",
+#       "services", "events", "jobs", "cronjobs", "nodes", "logs"
+#    ], help="The type of Kubernetes resource to query")
+#    parser.add_argument("-n", "--namespace", help="Filter by namespace")
     parser.add_argument("--all-namespaces", "-A", action="store_true",
                        help="Query all namespaces")
     parser.add_argument("-o", "--output", choices=["wide"],
                        help="Output format (wide for extended information)")
-    parser.add_argument("--pod-name", help="Specify pod name for logs")
+#    parser.add_argument("pods", help="Specify pod name for logs")
     parser.add_argument("--list-resources", action="store_true",
                        help="List all available resource types")
     parser.add_argument("--list-namespaces", action="store_true",
@@ -523,19 +542,113 @@ def main():
     parser.add_argument("--version", action="version",
                        version=f"%(prog)s {VERSION}",
                        help="Show version and exit")
+    subparsers = parser.add_subparsers(dest="command", required=True, help="Subcommand (get, describe)")
+#get command parser
+    get_parser = subparsers.add_parser("get", help="Get kubernetes resources")
+    valid_resource_types = [
+    "pods", "deployments", "statefulsets", "daemonsets", "replicasets",
+    "services", "events", "jobs", "cronjobs", "nodes", "namespaces", "all"
+    ]
+    get_parser.add_argument("resource_type", nargs='?', choices=valid_resource_types, help="The type of Kubernetes resource to query")
+    get_parser.add_argument("resource_target", nargs="?", help="For 'logs', specify pod name")
+    get_parser.add_argument("-n", "--namespace", help="Filter by namespace")
+    get_parser.add_argument("-A", "--all-namespaces", action="store_true", help="Query all namespaces")
+    get_parser.add_argument("-o", "--output", choices=["wide","yaml"], help="Output format (wide or yaml for extended information)")
+#    get_parser.add_argument("pods", help="Specify pod name for logs")
+
+#describe command parser
+    describe_parser = subparsers.add_parser("describe", help="Describe a specific resource")
+    describe_parser.add_argument("resource_type", choices=[
+        "pods", "deployments", "statefulsets", "daemonsets", "replicasets",
+        "services", "events", "jobs", "cronjobs", "nodes"
+    ])
+    describe_parser.add_argument("name", help="Name of the resource")
+    describe_parser.add_argument("-n", "--namespace", required=True, help="Namespace of the resource")
+    describe_parser.add_argument("-o", "--output", choices=["yaml"], help="output format")
+    describe_parser.add_argument("resource_target", nargs="?", help="Optional name of the resource to print in YAML")
+
+    logs_parser = subparsers.add_parser("logs", help="show pod specific logs")
+    logs_parser.add_argument("pod_name", help="pod name to show logs for")
+    logs_parser.add_argument("-n","--namespace", required=True, help="Namespace of the pod")
 
     args = parser.parse_args()
 
     # Validate arguments
-    if args.resource_type == "logs" and not (args.namespace and args.pod_name):
-        print("Error: For 'logs' resource type, both --namespace and --pod-name are required", file=sys.stderr)
-        sys.exit(1)
+#    if args.resource_type == "logs" and not (args.namespace and args.pod_name):
+#        print("Error: For 'logs' resource type, both --namespace and --pod-name are required", file=sys.stderr)
+#        sys.exit(1)
 
-    if not args.resource_type and not (args.list_resources or args.list_namespaces):
-        parser.print_help()
-        sys.exit(1)
+#    if not args.resource_type and not (args.list_resources or args.list_namespaces):
+#        parser.print_help()
+#        sys.exit(1)
 
-    base_dump_path = os.getcwd()
+    if args.command == "get" and args.resource_type == "logs":
+        if not args.resource_target or not args.namespace:
+            print("Error: For 'get logs', both POD_NAME and --namespace are required", file=sys.stderr)
+            print("Usage: pf9dumpctl get logs POD_NAME -n NAMESPACE")
+            sys.exit(1)
+    
+    if args.command == "get" and args.resource_type == "all":
+        if not args.namespace and not args.all_namespaces:
+            args.all_namespaces = True
+
+    if args.command == "logs":
+        namespace_path = os.path.join(os.getcwd(), args.namespace)
+        if not os.path.isdir(namespace_path):
+            print(f"Error: Namespace '{args.namespace}' not found in the dump.", file=sys.stderr)
+            sys.exit(1)
+
+        get_pod_logs(namespace_path, args.pod_name)
+        sys.exit(0)
+
+    
+
+    if args.command == "describe":
+        base_dump_path = os.getcwd()
+
+        resource_filename_map = {
+        "pods": "pods.yaml",
+        "deployments": "deployments.yaml",
+        "statefulsets": "statefulsets.yaml",
+        "daemonsets": "daemonsets.yaml",
+        "replicasets": "replicasets.yaml",
+        "services": "services.yaml",
+        "events": "events.yaml",
+        "jobs": "jobs.yaml",
+        "cronjobs": "cronjobs.yaml",
+        "nodes": "nodes.yaml",
+    }
+
+        if args.resource_type == "nodes":
+            resource_path = os.path.join(base_dump_path, "nodes.yaml")
+        else:
+            namespace_path = os.path.join(base_dump_path, args.namespace)
+            if not os.path.isdir(namespace_path):
+                print(f"Error: Namespace '{args.namespace}' not found.", file=sys.stderr)
+                sys.exit(1)
+
+            resource_path = os.path.join(namespace_path, resource_filename_map[args.resource_type])
+
+        if not os.path.exists(resource_path):
+            print(f"No resource file found at: {resource_path}", file=sys.stderr)
+            sys.exit(1)
+
+        items = parse_resource_file(resource_path)
+        matched = [res for res in items if res.get('metadata', {}).get('name') == args.name]
+
+        if not matched:
+            print(f"{args.resource_type} '{args.name}' not found in namespace '{args.namespace}'", file=sys.stderr)
+            sys.exit(1)
+            
+        if args.output == "yaml":
+            print(yaml.dump(matched[0], sort_keys=False))
+            sys.exit(0)
+
+# Default describe output (not yaml)
+        print(f"\n=== Description of {args.resource_type} '{args.name}' in namespace '{args.namespace}' ===")
+        print(yaml.dump(matched[0], sort_keys=False))
+        sys.exit(0)
+#    base_dump_path = os.getcwd()
 
     resource_map = {
         "pods": {"file": "pods.yaml", "display": "Pods", "printer": print_pods},
@@ -548,6 +661,7 @@ def main():
         "jobs": {"file": "jobs.yaml", "display": "Jobs", "printer": print_jobs},
         "cronjobs": {"file": "cronjobs.yaml", "display": "CronJobs", "printer": print_cronjobs},
         "nodes": {"file": "nodes.yaml", "display": "Nodes", "printer": print_nodes},
+        "namespaces": {"file": None, "display": "Namespaces", "printer": lambda ns_list, **kwargs: print_namespaces(ns_list)}
     }
 
     if args.list_resources:
@@ -564,6 +678,70 @@ def main():
         if found_namespaces:
             for ns in sorted(found_namespaces):
                 print(f"- {ns}")
+        else:
+            print("No namespaces found in the cluster dump directory.")
+        sys.exit(0)
+
+    if args.resource_type == "all":
+        print("\n=== Showing all supported resources ===\n")
+        for rtype in [
+            "pods", "deployments", "statefulsets", "daemonsets", "replicasets",
+            "services", "jobs", "cronjobs", "nodes"
+        ]:
+            selected_resource_info = resource_map.get(rtype)
+            if not selected_resource_info:
+                continue
+
+            resource_filename = selected_resource_info["file"]
+            resource_display_name = selected_resource_info["display"]
+            resource_printer = selected_resource_info["printer"]
+
+            all_collected_resources = []
+
+            if rtype == "nodes":
+                nodes_file_path = os.path.join(base_dump_path, "nodes.yaml")
+                nodes_list = parse_resource_file(nodes_file_path)
+                if nodes_list:
+                    print(f"\n=== {resource_display_name} ===")
+                    resource_printer(nodes_list, wide_output=(args.output == "wide"))
+                continue
+
+            if args.all_namespaces:
+                namespaces_to_process = [d for d in os.listdir(base_dump_path)
+                                         if os.path.isdir(os.path.join(base_dump_path, d))
+                                         and not d.startswith('.')]
+            elif args.namespace:
+                namespaces_to_process = [args.namespace]
+            else:
+                print("Error: Please specify a namespace with -n/--namespace or use --all-namespaces.", file=sys.stderr)
+                sys.exit(1)
+
+            for namespace in namespaces_to_process:
+                namespace_path = os.path.join(base_dump_path, namespace)
+                resource_path = os.path.join(namespace_path, resource_filename)
+                if not os.path.exists(resource_path):
+                    continue
+                items = parse_resource_file(resource_path)
+                for res in items:
+                    if 'metadata' in res and 'namespace' not in res['metadata']:
+                        res['metadata']['namespace'] = namespace
+                all_collected_resources.extend(items)
+
+            if all_collected_resources:
+                print(f"\n=== {resource_display_name} ===")
+                resource_printer(all_collected_resources,
+                                 wide_output=(args.output == "wide"),
+                                 all_namespaces=args.all_namespaces)
+            else:
+                print(f"No {resource_display_name} found.")
+
+        sys.exit(0) 
+
+    if args.resource_type == "namespaces":
+        namespace_dirs = [d for d in os.listdir(base_dump_path)
+                          if os.path.isdir(os.path.join(base_dump_path, d)) and not d.startswith('.')]
+        if namespace_dirs:
+            print_namespaces(namespace_dirs)
         else:
             print("No namespaces found in the cluster dump directory.")
         sys.exit(0)
@@ -644,21 +822,30 @@ def main():
 
         all_collected_resources.extend(current_namespace_resources)
 
+    if args.output == "yaml" and args.resource_target:
+        matched = [
+            res for res in all_collected_resources
+            if res.get("metadata", {}).get("name") == args.resource_target
+        ]
+        if matched:
+            print(yaml.dump(matched[0], sort_keys=False))
+        else:
+            print(f"{args.resource_type} '{args.resource_target}' not found in specified namespace(s).", file=sys.stderr)
+        sys.exit(0)
+
     if args.all_namespaces:
-        # Print all collected resources at once with namespace column
         if all_collected_resources:
             resource_printer(all_collected_resources,
-                           wide_output=(args.output == "wide"),
-                           all_namespaces=True)
+                         wide_output=(args.output == "wide"),
+                         all_namespaces=True)
         else:
             print(f"No {resource_display_name} found across all namespaces.")
     else:
-        # Print resources for the single specified namespace
         if all_collected_resources:
             print(f"\n--- Namespace: {args.namespace} ---")
             resource_printer(all_collected_resources,
-                          wide_output=(args.output == "wide"),
-                          all_namespaces=False)
+                         wide_output=(args.output == "wide"),
+                         all_namespaces=False)
         else:
             print(f"No {resource_display_name} found in namespace '{args.namespace}'.")
 
