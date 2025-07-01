@@ -65,7 +65,7 @@ Add the following to your shell config (`~/.bashrc`, `~/.zshrc`, etc.):
 
 
 ```bash
-echo "alias pf9dumpctl='python3 /usr/local/bin/pf9dumpctl'" >> ~/.bashrc
+echo "alias pc='python3 /usr/local/bin/pf9dumpctl'" >> ~/.bashrc
 source ~/.bashrc
 ```
 
