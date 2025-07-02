@@ -568,10 +568,13 @@ def main():
         epilog=dedent("""\
         Examples:
           # List all events across all namespaces
-          pf9dumpctl events -A
+          pf9dumpctl get events -A
 
           # List pods in specific namespace with wide output
           pf9dumpctl get pods -n kube-system -o wide
+
+          # List pods in specific namespace with -o yaml output
+          pf9dumpctl get pods -n kube-system -o yaml
 
           # View logs for a specific pod
           pf9dumpctl logs <pod-name> -n <namespace>
@@ -597,9 +600,9 @@ def main():
     parser.add_argument("-o", "--output", choices=["wide"],
                        help="Output format (wide for extended information)")
 #    parser.add_argument("pods", help="Specify pod name for logs")
-    parser.add_argument("--list-resources", action="store_true",
+    parser.add_argument("-A", action="store_true",
                        help="List all available resource types")
-    parser.add_argument("--list-namespaces", action="store_true",
+    parser.add_argument("namespaces", action="store_true",
                        help="List all available namespaces")
     parser.add_argument("--version", action="version",
                        version=f"%(prog)s {VERSION}",
