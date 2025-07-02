@@ -600,9 +600,9 @@ def main():
     parser.add_argument("-o", "--output", choices=["wide"],
                        help="Output format (wide for extended information)")
 #    parser.add_argument("pods", help="Specify pod name for logs")
-    parser.add_argument("-A", action="store_true",
+    parser.add_argument("--list-resources", action="store_true",
                        help="List all available resource types")
-    parser.add_argument("namespaces", action="store_true",
+    parser.add_argument("--list-namespaces", action="store_true",
                        help="List all available namespaces")
     parser.add_argument("--version", action="version",
                        version=f"%(prog)s {VERSION}",
