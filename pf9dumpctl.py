@@ -584,7 +584,7 @@ def main():
 
         Supported Resource Types:
           pods, deployments, statefulsets, daemonsets, replicasets,
-          services, events, jobs, cronjobs, nodes, logs
+          services, events, jobs, cronjobs, nodes, logs, hosts
         """))
 
 #    parser.add_argument("resource_type", nargs='?', choices=[
