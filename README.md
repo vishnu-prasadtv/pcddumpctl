@@ -74,6 +74,14 @@ source ~/.bashrc
 export CLUSTER_DUMP_PATH=/path/to/your/cluster-dump
 ```
 
+Note: Ensure the path `/path/to/your/cluster-dump` has the related namespace folders present.
+Example:
+```
+$ ls /path/to/your/cluster-dump
+nodes.yaml    ns1-folder    ns2-folder    ns3-folder
+ns4-folder    ns5-folder    ns6-folder    ns7-folder
+```
+
 ---
 
 ## 🛠️ Usage
