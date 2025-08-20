@@ -22,7 +22,14 @@ chmod +x pcddumpctl.py
 # Adding Binary
 sudo cp pcddumpctl.py /usr/local/bin/pcddumpctl
 
+echo 'Now you are ready to use "pcddumpctl" or "pc" commands!'
+
 # Alias
 alias pc=pcddumpctl
-
-echo 'Now you are ready to use "pcddumpctl" or "pc" commands!'
+echo "alias pc=pcddumpctl" >> ~/.bash_profile
+echo "alias pc=pcddumpctl" >> ~/.bashrc
+source ~/.bash_profile
+source ~/.bashrc
+# Edit /etc/bashrc or /etc/profile.d/custom_aliases.sh
+sudo sh -c 'echo "alias pc=pcddumpctl" >> /etc/bashrc'
+sudo sh -c 'echo "alias pc=pcddumpctl" > /etc/profile.d/custom_aliases.sh'
