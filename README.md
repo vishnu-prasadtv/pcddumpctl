@@ -138,7 +138,6 @@ volumeattachments                                            storage.k8s.io     
 mutatingwebhookconfigurations                                admissionregistration.k8s.io false      MutatingWebhookConfiguration
 validatingwebhookconfigurations                              admissionregistration.k8s.io false      ValidatingWebhookConfiguration
 namespaces                      namespace,ns                                              false      Namespace
-(venv) vishnu@WH7F4T5F6R pcddump %
 ```
 
 ### ⚙️ Options
@@ -194,7 +193,6 @@ Commands
 
     
         pcddumpctl get events -n <NS>  | head 
-
 ```
 
 ---
