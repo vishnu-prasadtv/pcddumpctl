@@ -18,7 +18,7 @@
 
 ## Express Installation
 ```
-curl -sSL https://raw.githubusercontent.com/vishnu-prasadtv/pcddumpctl/main/pcddumctl-start.sh | bash
+curl -sSL https://raw.githubusercontent.com/vishnu-prasadtv/pcddumpctl/main/pcddumpctl-start.sh | bash
 ```
 
 ## Manual Installation
