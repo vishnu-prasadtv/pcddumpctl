@@ -18,7 +18,7 @@
 
 ## Automated steps to configure:
 ```
-bash start.sh
+bash pcddumctl-start.sh
 ```
 
 ## Manual steps to configure:
