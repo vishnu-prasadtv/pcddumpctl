@@ -23,7 +23,6 @@ chmod +x pcddumpctl.py
 sudo cp pcddumpctl.py /usr/local/bin/pcddumpctl
 
 # Alias
-alias pc='pcddumpctl'
-
+alias pc=pcddumpctl
 
 echo 'Now you are ready to use "pcddumpctl" or "pc" commands!'
