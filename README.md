@@ -21,7 +21,7 @@
 curl -sSL https://raw.githubusercontent.com/vishnu-prasadtv/pcddumpctl/main/pcddumctl-start.sh | bash
 ```
 
-## Manual steps to configure:
+## Manual Installation
 ### 1. Clone the GitHub Repository
 
 ```bash
