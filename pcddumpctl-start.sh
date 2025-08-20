@@ -1,61 +1,56 @@
 #!/bin/bash
 
-# Prompt for base path
-read -p "Enter base path for PCD dump (default: /tmp): " BASEPATH
-BASEPATH=${BASEPATH:-/tmp}
+set -e
 
-# Step 1: Create dump directory
-DUMP_DIR="${BASEPATH}/pcddump-$(date +%F_%H-%M-%S)"
-mkdir -p "$DUMP_DIR"
+# Detect the user's shell and set config file accordingly
+if [ -n "$ZSH_VERSION" ] || [ "$(basename "$SHELL")" = "zsh" ]; then
+    SHELL_RC="$HOME/.zshrc"
+    SHELL_TYPE="zsh"
+elif [ -n "$BASH_VERSION" ] || [ "$(basename "$SHELL")" = "bash" ]; then
+    SHELL_RC="$HOME/.bashrc"
+    SHELL_TYPE="bash"
+else
+    SHELL_RC="$HOME/.profile"
+    SHELL_TYPE="profile"
+fi
 
-echo "Dump directory: $DUMP_DIR"
+# Clone repo if not present
+if [ ! -d "pcddumpctl" ]; then
+    git clone https://github.com/vishnu-prasadtv/pcddumpctl.git
+fi
+cd pcddumpctl
 
-# Step 2: Collect namespaces info
-kubectl get ns >  "${DUMP_DIR}/get-namespaces.txt"
-kubectl get ns -o wide >  "${DUMP_DIR}/get-owide-namespaces.txt"
-kubectl get ns --show-labels > "${DUMP_DIR}/get-show-labels-namespaces.txt"
-kubectl describe namespace > "${DUMP_DIR}/namespaces-describe.txt"
-kubectl get namespace -o yaml > "${DUMP_DIR}/namespaces.yaml"
+# Create virtual environment if not present
+if [ ! -d "pf9env" ]; then
+    python3 -m venv pf9env
+fi
 
-# Step 3: Collect cluster-wide resources (example)
-CLUSTER_RESOURCES=(
-    persistentvolumes
-    storageclasses
-    ingressclasses
-    clusterrolebindings
-    clusterroles
-    nodes
-    csidrivers
-    csinodes
-    csistoragecapacities
-    customresourcedefinitions
-    priorityclasses
-    runtimeclasses
-    volumeattachments
-    mutatingwebhookconfigurations
-    validatingwebhookconfigurations
-)
+# Activate the virtual environment
+source pf9env/bin/activate
 
-for resource in "${CLUSTER_RESOURCES[@]}"; do
-    kubectl get "$resource" > "${DUMP_DIR}/get-${resource}.txt" 2>/dev/null
-    kubectl get "$resource" -o wide > "${DUMP_DIR}/get-owide-${resource}.txt" 2>/dev/null
-    kubectl get "$resource" --show-labels > "${DUMP_DIR}/get-show-labels-${resource}.txt" 2>/dev/null
-    kubectl describe "$resource" > "${DUMP_DIR}/${resource}-describe.txt" 2>/dev/null
-    kubectl get "$resource" -o yaml > "${DUMP_DIR}/${resource}.yaml" 2>/dev/null
-done
+# Install required modules
+pip install --upgrade pip
+pip install -r requirements.txt
 
-# Step 4: Collect events
-kubectl get events -A > "${DUMP_DIR}/get-all-events.txt" 2>/dev/null
+# Make the script executable
+chmod +x pcddumpctl.py
 
-# Step 5: Collect metrics
-mkdir -p "${DUMP_DIR}/metrics"
-kubectl top nodes > "${DUMP_DIR}/metrics/nodes-usage.txt" 2>/dev/null
-kubectl top pods -A > "${DUMP_DIR}/metrics/pods-usage.txt" 2>/dev/null
+# Copy binary to /usr/local/bin
+sudo cp pcddumpctl.py /usr/local/bin/pcddumpctl
 
-# Step 6: Collect version info
-kubectl version > "${DUMP_DIR}/cluster-version.txt" 2>/dev/null
+echo 'Now you are ready to use "pcddumpctl" or "pc" commands!'
 
-# Step 7: Integrity checksums
-find "${DUMP_DIR}" -type f -exec sha256sum {} \; > "${DUMP_DIR}/integrity.checksums"
+# Add alias if not already present
+if ! grep -q "alias pc=pcddumpctl" "$SHELL_RC"; then
+    echo "alias pc=pcddumpctl" >> "$SHELL_RC"
+    echo "Alias 'pc' added to $SHELL_RC"
+else
+    echo "Alias 'pc' already set in $SHELL_RC"
+fi
 
-echo "✅ Cluster dump completed at $DUMP_DIR"
+# Source the rc file automatically
+echo "Sourcing $SHELL_RC to activate the alias..."
+source "$SHELL_RC"
+
+echo "You can now use the 'pc' command, e.g.:"
+echo "  pc get nodes"
