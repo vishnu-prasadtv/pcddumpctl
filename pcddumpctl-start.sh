@@ -47,7 +47,7 @@ check_and_set_alias() {
 
 # Main script
 if check_and_set_alias; then
-    echo "Alias 'pc' is successfully exported. Start using Example: 'pc api-resources'""
+    echo "Alias 'pc' is successfully exported. Start using Example: 'pc api-resources'"
 else
     echo "Alias 'pc' already present. Start using Example: 'pc api-resources'"
 fi
