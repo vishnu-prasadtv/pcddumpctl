@@ -16,9 +16,9 @@
 
 # 📦 Installation
 
-## Automated steps to configure:
+## Express Installation
 ```
-bash pcddumctl-start.sh
+curl -sSL https://raw.githubusercontent.com/vishnu-prasadtv/pcddumpctl/main/pcddumctl-start.sh | bash
 ```
 
 ## Manual steps to configure:
