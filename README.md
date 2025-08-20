@@ -14,8 +14,14 @@
 
 ---
 
-## 📦 Installation
+# 📦 Installation
 
+## Automated steps to configure:
+```
+bash start.sh
+```
+
+## Manual steps to configure:
 ### 1. Clone the GitHub Repository
 
 ```bash
