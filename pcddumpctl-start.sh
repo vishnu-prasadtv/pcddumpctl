@@ -25,11 +25,29 @@ sudo cp pcddumpctl.py /usr/local/bin/pcddumpctl
 echo 'Now you are ready to use "pcddumpctl" or "pc" commands!'
 
 # Alias
-alias pc=pcddumpctl
-echo "alias pc=pcddumpctl" >> ~/.bash_profile
-echo "alias pc=pcddumpctl" >> ~/.bashrc
-source ~/.bash_profile
-source ~/.bashrc
-# Edit /etc/bashrc or /etc/profile.d/custom_aliases.sh
-sudo sh -c 'echo "alias pc=pcddumpctl" >> /etc/bashrc'
-sudo sh -c 'echo "alias pc=pcddumpctl" > /etc/profile.d/custom_aliases.sh'
+# Function to check if alias exists
+check_and_set_alias() {
+    # Check if alias is already defined
+    if ! alias pc 2>/dev/null; then
+        # Add alias to bash profile and bashrc
+        echo "alias pc=pcddumpctl" >> ~/.bash_profile
+        echo "alias pc=pcddumpctl" >> ~/.bashrc
+        
+        # Source the profile files to apply immediately
+        source ~/.bash_profile
+        source ~/.bashrc
+        
+        echo "Alias 'pc' has been created."
+        return 0
+    else
+        echo "Alias 'pc' already exists."
+        return 1
+    fi
+}
+
+# Main script
+if check_and_set_alias; then
+    echo "Alias 'pc' is successfully exported. Start using Example: 'pc api-resources'""
+else
+    echo "Alias 'pc' already present. Start using Example: 'pc api-resources'"
+fi
