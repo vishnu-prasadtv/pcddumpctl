@@ -98,11 +98,11 @@ pcddumpctl [command] [options]
 
 ```
 Commands:
-  get            Get resources
-  describe       Describe a resource
-  logs           Show pod logs
-  top            Show resource usage metrics
-  api-resources  List resource types (like kubectl api-resources)
+  get              Get resources
+  describe         Describe a resource
+  logs             Show pod logs
+  top              Show resource usage metrics
+  api-resources    List resource types (like kubectl api-resources)
 ```
 
 ### 🔍 Supported Resource Types
