@@ -16,7 +16,7 @@
 
 # 📦 Installation
 
-## Express Installation
+## Quick Installation
 ```
 curl -sSL https://raw.githubusercontent.com/vishnu-prasadtv/pcddumpctl/main/pcddumpctl-start.sh | bash
 ```
