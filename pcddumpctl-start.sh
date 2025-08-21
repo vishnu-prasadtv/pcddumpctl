@@ -50,7 +50,7 @@ fi
 
 # Source the rc file automatically
 echo "Sourcing $SHELL_RC to activate the alias..."
-source "$SHELL_RC"
+source $SHELL_RC
 
 echo "You can now use the 'pc' command, e.g.:"
 echo "  pc get nodes"
