@@ -154,15 +154,13 @@ Positional arguments:
       resource_names        Name(s) of the resource(s) (optional, multiple allowed)
 
 Options:
-      -h, --help            show this help message and exit
-      -n, --namespace NAMESPACE
-                        Namespace to filter by (if applicable)
-      -A, --all-namespaces  List across all namespaces
-      -b, --basepath BASEPATH
-                        Base path to cluster-dump directory
-      -oyaml, --oyaml       Output full yaml
-      -owide, --owide       Wide output (extra columns)
-      --show-labels         Show labels column
+      -h, --help                 Show this help message and exit
+      -n, --namespace NAMESPACE  Namespace to filter by (if applicable)
+      -A, --all-namespaces       List across all namespaces
+      -b, --basepath BASEPATH    Base path to cluster-dump directory
+      -oyaml, --oyaml            Output full yaml
+      -owide, --owide            Wide output (extra columns)
+      --show-labels              Show labels column
 ```
 
 ---
