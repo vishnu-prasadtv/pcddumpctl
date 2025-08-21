@@ -171,34 +171,38 @@ Options:
 
 ```bash
 Commands 
-        pcddumpctl get <Namespace-scoped-resource> -n <NS>  | head 
-        pcddumpctl get <Namespace-scoped-resource> -n <NS>  -owide  | head 
-        pcddumpctl get <Namespace-scoped-resource> -n <NS>  --show-labels  | head 
-        pcddumpctl get <Namespace-scoped-resource> -A | head 
-        pcddumpctl get <Namespace-scoped-resource> -A -owide| head 
-        pcddumpctl get <Namespace-scoped-resource> -A --show-labels| head 
+   Get:
+        pcddumpctl get <Namespace-scoped-resource> -n <NS> 
+        pcddumpctl get <Namespace-scoped-resource> -n <NS>  -owide  
+        pcddumpctl get <Namespace-scoped-resource> -n <NS>  --show-labels  
+        pcddumpctl get <Namespace-scoped-resource> -A
+        pcddumpctl get <Namespace-scoped-resource> -A -owide
+        pcddumpctl get <Namespace-scoped-resource> -A --show-labels
 
-        pcddumpctl get <Cluster-scoped-resource>    | head 
-        pcddumpctl get <Cluster-scoped-rresource> -owide  | head 
-        pcddumpctl get <Cluster-scoped-rresource> --show-labels  | head 
+        pcddumpctl get <Cluster-scoped-resource>    
+        pcddumpctl get <Cluster-scoped-rresource> -owide  
+        pcddumpctl get <Cluster-scoped-rresource> --show-labels  
+   
+   Top:
+        pcddumpctl top nodes  
+        pcddumpctl top pods -n <NS>  
+        pcddumpctl top pods -A   
 
-
-        pcddumpctl top nodes  | head 
-        pcddumpctl top pods -n <NS>  | head 
-        pcddumpctl top pods -A   | head 
-
-        pcddumpctl describe  <Namespace-scoped-resource> -n <NS>    | head 
-        pcddumpctl describe <Cluster-scoped-resource>  | head 
-
-
-        pcddumpctl get  <Namespace-scoped-resource> -n <NS>   -oyaml  | head 
-        pcddumpctl get   <Cluster-scoped-resource>   -oyaml     | head 
-
-
-        pcddumpctl logs -n <NS> <pod-name> | head 
-
-    
-        pcddumpctl get events -n <NS>  | head 
+   Describe:
+        pcddumpctl describe  <Namespace-scoped-resource> -n <NS>   
+        pcddumpctl describe  <Cluster-scoped-resource> 
+ 
+   Yamls:
+        pcddumpctl get  <Namespace-scoped-resource> -n <NS>   -oyaml  
+        pcddumpctl get  <Cluster-scoped-resource>   -oyaml    
+   
+   Logs:
+        pcddumpctl logs -n <NS> <pod-name>
+        pcddumpctl logs -n <NS> <pod-name> --previous
+   
+   Events:
+        pcddumpctl get events -n <NS>
+        pcddumpctl get events -A
 ```
 
 ---
